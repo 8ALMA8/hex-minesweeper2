@@ -1,0 +1,604 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>踩地雷</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one centered game panel (level tabs, LCD status bar, scrollable board), best times and help below. */
+:root {
+  --bg: #e6eae5;
+  --panel: #f3f6f2;
+  --fg: #1b231f;
+  --muted: #5d6b63;
+  --line: #c3ccc3;
+  --accent: #1f6f5c;
+  --accent-fg: #ffffff;
+  --danger: #c0392b;
+  --cell-closed: #c4cdc3;
+  --cell-hi: #e8ede7;
+  --cell-lo: #98a49a;
+  --cell-open: #f3f6f2;
+  --lcd-bg: #1b231f;
+  --lcd-fg: #ff7a59;
+  --n1: #1a56c4;
+  --n2: #1f7a3a;
+  --n3: #c0392b;
+  --n4: #4b2fa0;
+  --n5: #8a3b12;
+  --n6: #0e7c86;
+  --n7: #222a26;
+  --n8: #66726a;
+  --font-display: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131815;
+    --panel: #1c231f;
+    --fg: #e3e9e4;
+    --muted: #93a098;
+    --line: #2f3a34;
+    --accent: #4fc3a1;
+    --accent-fg: #0d1511;
+    --danger: #ff6b5a;
+    --cell-closed: #3a453e;
+    --cell-hi: #55635a;
+    --cell-lo: #232b26;
+    --cell-open: #161c18;
+    --lcd-bg: #0b0f0d;
+    --lcd-fg: #ff8a69;
+    --n1: #6aa3ff;
+    --n2: #5fcf86;
+    --n3: #ff7b6b;
+    --n4: #a58bff;
+    --n5: #e8935a;
+    --n6: #4fd1d9;
+    --n7: #dfe5e0;
+    --n8: #9aa59d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131815;
+  --panel: #1c231f;
+  --fg: #e3e9e4;
+  --muted: #93a098;
+  --line: #2f3a34;
+  --accent: #4fc3a1;
+  --accent-fg: #0d1511;
+  --danger: #ff6b5a;
+  --cell-closed: #3a453e;
+  --cell-hi: #55635a;
+  --cell-lo: #232b26;
+  --cell-open: #161c18;
+  --lcd-bg: #0b0f0d;
+  --lcd-fg: #ff8a69;
+  --n1: #6aa3ff;
+  --n2: #5fcf86;
+  --n3: #ff7b6b;
+  --n4: #a58bff;
+  --n5: #e8935a;
+  --n6: #4fd1d9;
+  --n7: #dfe5e0;
+  --n8: #9aa59d;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-block: 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+header { text-align: center; }
+h1 {
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-wrap: balance;
+}
+.sub { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+.game {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.levels { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-color: var(--accent);
+}
+.btn:focus-visible, .cell:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 700; }
+.levels .meta { margin-left: auto; align-self: center; color: var(--muted); font-size: 13px; }
+
+.statusbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.lcd {
+  background: var(--lcd-bg);
+  color: var(--lcd-fg);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.6ch;
+  text-align: center;
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+.statusbar .mid { display: flex; justify-content: center; }
+.msg { margin: 0; min-height: 1.6em; text-align: center; font-size: 14px; color: var(--muted); }
+.msg.win { color: var(--accent); font-weight: 700; }
+.msg.lose { color: var(--danger); font-weight: 700; }
+
+.board-scroll { overflow-x: auto; max-width: 100%; padding-bottom: 2px; }
+.board {
+  --cell: 34px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 9), var(--cell));
+  width: max-content;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  border: 1px solid var(--line);
+}
+.cell {
+  width: var(--cell);
+  height: var(--cell);
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: calc(var(--cell) * 0.56);
+  line-height: 1;
+  color: var(--fg);
+  background: var(--cell-closed);
+  box-shadow: inset 2px 2px 0 var(--cell-hi), inset -2px -2px 0 var(--cell-lo);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cell svg { width: 62%; height: 62%; display: block; }
+.cell.open {
+  background: var(--cell-open);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: default;
+}
+.cell.hit { background: var(--danger); box-shadow: inset 0 0 0 1px var(--line); color: #fff; }
+.cell.wrong { background: var(--cell-open); box-shadow: inset 0 0 0 1px var(--line); color: var(--danger); }
+.cell[data-n="1"] { color: var(--n1); }
+.cell[data-n="2"] { color: var(--n2); }
+.cell[data-n="3"] { color: var(--n3); }
+.cell[data-n="4"] { color: var(--n4); }
+.cell[data-n="5"] { color: var(--n5); }
+.cell[data-n="6"] { color: var(--n6); }
+.cell[data-n="7"] { color: var(--n7); }
+.cell[data-n="8"] { color: var(--n8); }
+
+.tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.tools .hint { color: var(--muted); font-size: 13px; min-width: 0; flex: 1 1 220px; }
+
+.best {
+  width: 100%;
+  max-width: 560px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.best > div { padding: 10px 4px; text-align: center; }
+.best dt { color: var(--muted); font-size: 13px; margin: 0; }
+.best dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.best-title { margin: 0; font-size: 13px; color: var(--muted); letter-spacing: 0.08em; }
+
+@media (max-width: 420px) {
+  h1 { font-size: 28px; }
+  .game { padding: 10px; }
+  .lcd { font-size: 22px; }
+  .levels .meta { margin-left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>踩地雷</h1>
+    <p class="sub">左鍵翻開，右鍵插旗。手機長按插旗，或切換到插旗模式。</p>
+  </header>
+
+  <section class="game" aria-label="踩地雷遊戲">
+    <div class="levels" id="levels" role="group" aria-label="難度">
+      <button class="btn" type="button" id="lv-easy" data-level="easy" aria-pressed="true">初級 9×9</button>
+      <button class="btn" type="button" id="lv-mid" data-level="mid" aria-pressed="false">中級 16×16</button>
+      <button class="btn" type="button" id="lv-hard" data-level="hard" aria-pressed="false">高級 30×16</button>
+      <span class="meta" id="levelMeta">10 顆地雷</span>
+    </div>
+
+    <div class="statusbar">
+      <div class="lcd" id="mineCount" aria-label="剩餘地雷數">010</div>
+      <div class="mid"><button class="btn primary" type="button" id="restart">新遊戲</button></div>
+      <div class="lcd" id="timer" aria-label="已用秒數">000</div>
+    </div>
+    <p class="msg" id="msg" role="status" aria-live="polite">點任一格開始，第一步一定安全。</p>
+
+    <div class="board-scroll">
+      <div class="board" id="board" role="grid" aria-label="地雷盤面"></div>
+    </div>
+
+    <div class="tools">
+      <button class="btn" type="button" id="flagMode" aria-pressed="false">插旗模式：關</button>
+      <p class="hint" style="margin:0">點已翻開的數字，若周圍旗數相符，會一次翻開其餘格子。方向鍵移動，F 鍵插旗。</p>
+    </div>
+  </section>
+
+  <section class="best-wrap" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:6px">
+    <h2 class="best-title">最佳紀錄</h2>
+    <dl class="best" id="best">
+      <div><dt>初級</dt><dd id="best-easy">—</dd></div>
+      <div><dt>中級</dt><dd id="best-mid">—</dd></div>
+      <div><dt>高級</dt><dd id="best-hard">—</dd></div>
+    </dl>
+  </section>
+</div>
+
+<script>
+(function () {
+  var LEVELS = {
+    easy: { rows: 9, cols: 9, mines: 10 },
+    mid: { rows: 16, cols: 16, mines: 40 },
+    hard: { rows: 16, cols: 30, mines: 99 }
+  };
+  var MINE = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="4.2" fill="currentColor"/><path d="M8 1.5v13M1.5 8h13M3.4 3.4l9.2 9.2M12.6 3.4l-9.2 9.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="6.7" cy="6.7" r="1.1" fill="#fff"/></svg>';
+  var FLAG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M4.5 2l8 3.4-8 3.6z" fill="var(--danger)"/><path d="M2.5 14h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  var WRONG = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.6" fill="currentColor" opacity=".55"/><path d="M2.5 2.5l11 11M13.5 2.5l-11 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var boardEl = $('board'), mineEl = $('mineCount'), timerEl = $('timer'), msgEl = $('msg');
+  var flagBtn = $('flagMode'), metaEl = $('levelMeta');
+
+  var level = 'easy', G = null, timerId = null, flagMode = false, longFired = false, pressTimer = null;
+  var bests = { easy: null, mid: null, hard: null };
+
+  function loadBests() {
+    Object.keys(bests).forEach(function (k) {
+      try {
+        var v = localStorage.getItem('ms-best-' + k);
+        if (v) bests[k] = parseInt(v, 10);
+      } catch (e) {}
+    });
+  }
+  function saveBest(k, t) {
+    bests[k] = t;
+    try { localStorage.setItem('ms-best-' + k, String(t)); } catch (e) {}
+  }
+  function showBests() {
+    Object.keys(bests).forEach(function (k) {
+      $('best-' + k).textContent = bests[k] == null ? '—' : bests[k] + ' 秒';
+    });
+  }
+
+  function fmt(n) {
+    if (n < 0) return '-' + String(Math.min(99, -n)).padStart(2, '0');
+    return String(Math.min(999, n)).padStart(3, '0');
+  }
+  function setMsg(text, cls) {
+    msgEl.textContent = text;
+    msgEl.className = 'msg' + (cls ? ' ' + cls : '');
+  }
+  function updateCounters() {
+    mineEl.textContent = fmt(G.mines - G.flags);
+    timerEl.textContent = fmt(G.time);
+  }
+
+  function nb(i) {
+    var rows = G.rows, cols = G.cols, r = (i / cols) | 0, c = i % cols, out = [];
+    for (var dr = -1; dr <= 1; dr++) {
+      for (var dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        var rr = r + dr, cc = c + dc;
+        if (rr >= 0 && rr < rows && cc >= 0 && cc < cols) out.push(rr * cols + cc);
+      }
+    }
+    return out;
+  }
+
+  function fit() {
+    var cols = LEVELS[level].cols;
+    var avail = Math.min(document.documentElement.clientWidth, 1120) - 32 - 30;
+    var size = Math.floor(avail / cols);
+    size = Math.max(26, Math.min(40, size));
+    boardEl.style.setProperty('--cell', size + 'px');
+  }
+
+  function stopTimer() {
+    if (timerId) { clearInterval(timerId); timerId = null; }
+  }
+  function startTimer() {
+    var t0 = Date.now();
+    stopTimer();
+    timerId = setInterval(function () {
+      G.time = Math.min(999, Math.floor((Date.now() - t0) / 1000));
+      timerEl.textContent = fmt(G.time);
+    }, 250);
+  }
+
+  function newGame() {
+    stopTimer();
+    var L = LEVELS[level];
+    var total = L.rows * L.cols;
+    var cells = [];
+    for (var i = 0; i < total; i++) cells.push({ m: false, a: 0, o: false, f: false, s: '' });
+    G = { rows: L.rows, cols: L.cols, mines: L.mines, cells: cells, started: false, over: false, opened: 0, flags: 0, time: 0 };
+
+    boardEl.innerHTML = '';
+    boardEl.style.setProperty('--cols', L.cols);
+    boardEl.setAttribute('aria-rowcount', L.rows);
+    boardEl.setAttribute('aria-colcount', L.cols);
+    var frag = document.createDocumentFragment();
+    for (var j = 0; j < total; j++) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cell';
+      b.dataset.i = j;
+      b.tabIndex = j === 0 ? 0 : -1;
+      b.setAttribute('role', 'gridcell');
+      b.setAttribute('aria-label', '第 ' + (((j / L.cols) | 0) + 1) + ' 列第 ' + ((j % L.cols) + 1) + ' 行，未翻開');
+      frag.appendChild(b);
+    }
+    boardEl.appendChild(frag);
+    fit();
+    metaEl.textContent = L.mines + ' 顆地雷';
+    ['easy', 'mid', 'hard'].forEach(function (k) {
+      $('lv-' + k).setAttribute('aria-pressed', k === level ? 'true' : 'false');
+    });
+    setMsg('點任一格開始，第一步一定安全。');
+    updateCounters();
+  }
+
+  function placeMines(safe) {
+    var banned = {};
+    banned[safe] = true;
+    nb(safe).forEach(function (n) { banned[n] = true; });
+    var pool = [];
+    for (var i = 0; i < G.cells.length; i++) if (!banned[i]) pool.push(i);
+    for (var k = 0; k < G.mines; k++) {
+      var r = k + Math.floor(Math.random() * (pool.length - k));
+      var tmp = pool[k]; pool[k] = pool[r]; pool[r] = tmp;
+      G.cells[pool[k]].m = true;
+    }
+    for (var j = 0; j < G.cells.length; j++) {
+      if (G.cells[j].m) continue;
+      var n = 0;
+      nb(j).forEach(function (x) { if (G.cells[x].m) n++; });
+      G.cells[j].a = n;
+    }
+  }
+
+  function paint(i) {
+    var c = G.cells[i], b = boardEl.children[i], cls = 'cell', h = '', num = '', label = '未翻開';
+    if (c.o) {
+      cls += ' open';
+      if (c.a > 0) { h = String(c.a); num = String(c.a); label = '數字 ' + c.a; } else { label = '空白'; }
+    } else if (c.s === 'hit') { cls += ' open hit'; h = MINE; label = '踩到的地雷'; }
+    else if (c.s === 'mine') { cls += ' open'; h = MINE; label = '地雷'; }
+    else if (c.s === 'wrong') { cls += ' wrong'; h = WRONG; label = '插錯旗'; }
+    else if (c.f) { cls += ' flag'; h = FLAG; label = '已插旗'; }
+    b.className = cls;
+    b.innerHTML = h;
+    if (num) b.dataset.n = num; else delete b.dataset.n;
+    var cols = G.cols;
+    b.setAttribute('aria-label', '第 ' + (((i / cols) | 0) + 1) + ' 列第 ' + ((i % cols) + 1) + ' 行，' + label);
+  }
+
+  function flood(start) {
+    var stack = [start];
+    while (stack.length) {
+      var i = stack.pop(), c = G.cells[i];
+      if (c.o || c.f || c.m) continue;
+      c.o = true;
+      G.opened++;
+      paint(i);
+      if (c.a === 0) nb(i).forEach(function (n) { stack.push(n); });
+    }
+  }
+
+  function lose(hit) {
+    G.over = true;
+    stopTimer();
+    G.cells.forEach(function (c, i) {
+      if (i === hit) { c.s = 'hit'; paint(i); }
+      else if (c.m && !c.f) { c.s = 'mine'; paint(i); }
+      else if (!c.m && c.f) { c.s = 'wrong'; paint(i); }
+    });
+    setMsg('踩到地雷了，再來一局吧。', 'lose');
+  }
+
+  function checkWin() {
+    if (G.over || G.opened !== G.cells.length - G.mines) return;
+    G.over = true;
+    stopTimer();
+    G.cells.forEach(function (c, i) {
+      if (c.m && !c.f) { c.f = true; paint(i); }
+    });
+    G.flags = G.mines;
+    updateCounters();
+    var t = Math.max(1, G.time);
+    var msg = '過關！用時 ' + t + ' 秒。';
+    if (bests[level] == null || t < bests[level]) {
+      saveBest(level, t);
+      showBests();
+      msg += '新紀錄！';
+    }
+    setMsg(msg, 'win');
+  }
+
+  function openCell(i) {
+    if (G.over) return;
+    var c = G.cells[i];
+    if (c.o) { chord(i); return; }
+    if (c.f) return;
+    if (!G.started) {
+      placeMines(i);
+      G.started = true;
+      startTimer();
+      setMsg('遊戲中');
+    }
+    if (c.m) { lose(i); return; }
+    flood(i);
+    checkWin();
+  }
+
+  function chord(i) {
+    var c = G.cells[i];
+    if (!c.o || c.a === 0) return;
+    var around = nb(i), flags = 0;
+    around.forEach(function (n) { if (G.cells[n].f) flags++; });
+    if (flags !== c.a) return;
+    for (var k = 0; k < around.length; k++) {
+      var n = around[k], x = G.cells[n];
+      if (x.f || x.o) continue;
+      if (x.m) { lose(n); return; }
+      flood(n);
+    }
+    checkWin();
+  }
+
+  function toggleFlag(i) {
+    if (G.over) return;
+    var c = G.cells[i];
+    if (c.o) return;
+    c.f = !c.f;
+    G.flags += c.f ? 1 : -1;
+    paint(i);
+    updateCounters();
+  }
+
+  function cellOf(e) {
+    var b = e.target.closest ? e.target.closest('.cell') : null;
+    return b ? parseInt(b.dataset.i, 10) : -1;
+  }
+
+  boardEl.addEventListener('click', function (e) {
+    var i = cellOf(e);
+    if (i < 0) return;
+    if (longFired) { longFired = false; return; }
+    if (flagMode && !G.cells[i].o) toggleFlag(i); else openCell(i);
+  });
+  boardEl.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    var i = cellOf(e);
+    if (i < 0) return;
+    if (longFired) return;
+    toggleFlag(i);
+  });
+  boardEl.addEventListener('pointerdown', function (e) {
+    longFired = false;
+    if (e.pointerType === 'mouse') return;
+    var i = cellOf(e);
+    if (i < 0) return;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(function () {
+      longFired = true;
+      toggleFlag(i);
+      try { if (navigator.vibrate) navigator.vibrate(20); } catch (err) {}
+    }, 380);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave', 'pointermove'].forEach(function (t) {
+    boardEl.addEventListener(t, function (e) {
+      if (t === 'pointermove' && e.pointerType === 'mouse') return;
+      clearTimeout(pressTimer);
+    });
+  });
+
+  boardEl.addEventListener('focusin', function (e) {
+    var i = cellOf(e);
+    if (i < 0) return;
+    Array.prototype.forEach.call(boardEl.children, function (b) { b.tabIndex = -1; });
+    boardEl.children[i].tabIndex = 0;
+  });
+  boardEl.addEventListener('keydown', function (e) {
+    var i = cellOf(e);
+    if (i < 0) return;
+    var cols = G.cols, rows = G.rows, r = (i / cols) | 0, c = i % cols, to = -1;
+    if (e.key === 'ArrowLeft' && c > 0) to = i - 1;
+    else if (e.key === 'ArrowRight' && c < cols - 1) to = i + 1;
+    else if (e.key === 'ArrowUp' && r > 0) to = i - cols;
+    else if (e.key === 'ArrowDown' && r < rows - 1) to = i + cols;
+    else if (e.key === 'f' || e.key === 'F') { toggleFlag(i); e.preventDefault(); return; }
+    if (to >= 0) { e.preventDefault(); boardEl.children[to].focus(); }
+  });
+
+  $('levels').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-level]') : null;
+    if (!b) return;
+    level = b.dataset.level;
+    newGame();
+  });
+  $('restart').addEventListener('click', newGame);
+  flagBtn.addEventListener('click', function () {
+    flagMode = !flagMode;
+    flagBtn.setAttribute('aria-pressed', flagMode ? 'true' : 'false');
+    flagBtn.textContent = '插旗模式：' + (flagMode ? '開' : '關');
+  });
+  window.addEventListener('resize', fit);
+
+  loadBests();
+  showBests();
+  newGame();
+})();
+</script>
+
+</body></html>
