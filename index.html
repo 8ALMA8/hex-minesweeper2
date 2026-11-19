@@ -30,6 +30,8 @@
   --n4: #4b2fa0;
   --n5: #8a3b12;
   --n6: #0e7c86;
+  --mA: #c8361f;
+  --mB: #1a56c4;
   --font-display: "Space Grotesk", "Noto Sans TC", system-ui, sans-serif;
   --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
 }
@@ -55,6 +57,8 @@
     --n4: #a58bff;
     --n5: #e8935a;
     --n6: #4fd1d9;
+    --mA: #ff7b6b;
+    --mB: #6aa3ff;
     color-scheme: dark;
   }
 }
@@ -79,6 +83,8 @@
   --n4: #a58bff;
   --n5: #e8935a;
   --n6: #4fd1d9;
+  --mA: #ff7b6b;
+  --mB: #6aa3ff;
   color-scheme: dark;
 }
 
@@ -183,6 +189,7 @@ h1 {
 .hex.closed .base { fill: var(--cell-closed); stroke: var(--cell-lo); }
 .hex.closed .bevel { fill: var(--cell-hi); opacity: 0.55; pointer-events: none; }
 .hex.closed:hover .bevel { opacity: 0.95; }
+.hex:not(.closed) .bevel { display: none; }
 .hex.open { cursor: default; }
 .hex.open .base { fill: var(--cell-open); stroke: var(--line); }
 .hex.hit { cursor: default; color: #fff; }
@@ -203,6 +210,16 @@ h1 {
 .hex .n5 { fill: var(--n5); }
 .hex .n6 { fill: var(--n6); }
 .hex use { pointer-events: none; }
+/* Two mine kinds: A = red round mine, B = blue diamond mine. Numbers show per-kind counts in matching colors. */
+.hex .ka { fill: var(--mA); color: var(--mA); }
+.hex .kb { fill: var(--mB); color: var(--mB); }
+.hex.hit use { color: #fff; }
+.lcds { display: flex; gap: 6px; }
+.lcd.ka { color: var(--mA); }
+.lcd.kb { color: var(--mB); }
+.legend { display: flex; justify-content: center; gap: 16px; margin: 0; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+.legend svg { width: 16px; height: 16px; }
 
 .tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .tools .hint { color: var(--muted); font-size: 13px; min-width: 0; flex: 1 1 220px; margin: 0; }
@@ -242,7 +259,7 @@ h1 {
 <div class="wrap">
   <header>
     <h1>六角踩地雷</h1>
-    <p class="sub">每格有 6 個鄰格，數字最大為 6。左鍵翻開，右鍵插旗；手機長按插旗。</p>
+    <p class="sub">兩種地雷：<b style="color:var(--mA)">紅雷</b>與<b style="color:var(--mB)">藍雷</b>。數字分色顯示各自的鄰雷數。左鍵翻開，右鍵輪流插紅旗／藍旗；手機長按插旗。</p>
   </header>
 
   <section class="game" aria-label="六角踩地雷遊戲">
@@ -250,11 +267,14 @@ h1 {
       <button class="btn" type="button" id="lv-easy" data-level="easy" aria-pressed="true">初級 9×9</button>
       <button class="btn" type="button" id="lv-mid" data-level="mid" aria-pressed="false">中級 15×15</button>
       <button class="btn" type="button" id="lv-hard" data-level="hard" aria-pressed="false">高級 24×16</button>
-      <span class="meta" id="levelMeta">12 顆地雷</span>
+      <span class="meta" id="levelMeta">7 紅雷 · 5 藍雷</span>
     </div>
 
     <div class="statusbar">
-      <div class="lcd" id="mineCount" aria-label="剩餘地雷數">012</div>
+      <div class="lcds">
+        <div class="lcd ka" id="mineCountA" aria-label="剩餘紅雷數">007</div>
+        <div class="lcd kb" id="mineCountB" aria-label="剩餘藍雷數">005</div>
+      </div>
       <div class="mid"><button class="btn primary" type="button" id="restart">新遊戲</button></div>
       <div class="lcd" id="timer" aria-label="已用秒數">000</div>
     </div>
@@ -264,7 +284,9 @@ h1 {
       <svg id="board" role="grid" aria-label="六角地雷盤面" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <symbol id="i-mine" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.2" fill="currentColor"/><path d="M8 1.5v13M1.5 8h13M3.4 3.4l9.2 9.2M12.6 3.4l-9.2 9.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="6.7" cy="6.7" r="1.1" fill="#fff"/></symbol>
-          <symbol id="i-flag" viewBox="0 0 16 16"><path d="M4.5 2v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M4.5 2l8 3.4-8 3.6z" fill="var(--danger)"/><path d="M2.5 14h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+          <symbol id="i-mine-b" viewBox="0 0 16 16"><path d="M8 2.2L13.8 8 8 13.8 2.2 8z" fill="currentColor"/><path d="M8 .8v2.4M8 12.8v2.4M.8 8h2.4M12.8 8h2.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="6.8" cy="6.8" r="1.1" fill="#fff"/></symbol>
+          <symbol id="i-flag" viewBox="0 0 16 16"><path d="M4.5 2v12" stroke="var(--fg)" stroke-width="1.6" stroke-linecap="round"/><path d="M4.5 2l8 3.4-8 3.6z" fill="var(--mA)"/><path d="M2.5 14h6" stroke="var(--fg)" stroke-width="1.6" stroke-linecap="round"/></symbol>
+          <symbol id="i-flag-b" viewBox="0 0 16 16"><path d="M4.5 2v12" stroke="var(--fg)" stroke-width="1.6" stroke-linecap="round"/><path d="M4.5 2h8v6.4h-8z" fill="var(--mB)"/><path d="M2.5 14h6" stroke="var(--fg)" stroke-width="1.6" stroke-linecap="round"/></symbol>
           <symbol id="i-wrong" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.6" fill="currentColor" opacity=".55"/><path d="M2.5 2.5l11 11M13.5 2.5l-11 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
         </defs>
         <g id="cells"></g>
@@ -273,7 +295,7 @@ h1 {
 
     <div class="tools">
       <button class="btn" type="button" id="flagMode" aria-pressed="false">插旗模式：關</button>
-      <p class="hint">點已翻開的數字，若周圍旗數相符，會一次翻開其餘鄰格。方向鍵移動，F 鍵插旗。</p>
+      <p class="hint">右鍵／長按／F 鍵依序切換：紅旗 → 藍旗 → 取消。點已翻開的數字，若周圍紅旗、藍旗數都相符，會一次翻開其餘鄰格。</p>
     </div>
   </section>
 
@@ -290,10 +312,12 @@ h1 {
 <script>
 (function () {
   var LEVELS = {
-    easy: { rows: 9, cols: 9, mines: 12 },
-    mid: { rows: 15, cols: 15, mines: 40 },
-    hard: { rows: 16, cols: 24, mines: 70 }
+    easy: { rows: 9, cols: 9, ma: 7, mb: 5 },
+    mid: { rows: 15, cols: 15, ma: 22, mb: 18 },
+    hard: { rows: 16, cols: 24, ma: 38, mb: 32 }
   };
+  // 兩種地雷：1 = 紅雷（圓形），2 = 藍雷（菱形）。格子的 m / f 都用 0、1、2 表示。
+  var KIND = { 1: { cls: 'ka', mine: 'i-mine', flag: 'i-flag', name: '紅' }, 2: { cls: 'kb', mine: 'i-mine-b', flag: 'i-flag-b', name: '藍' } };
   // 六角格採「奇數列右移」(odd-r) 座標，每格 6 個鄰格
   var DE = [[-1, 0], [1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]];
   var DO = [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]];
@@ -301,7 +325,7 @@ h1 {
   var SVGNS = 'http://www.w3.org/2000/svg';
 
   var $ = function (id) { return document.getElementById(id); };
-  var boardEl = $('board'), cellsEl = $('cells'), mineEl = $('mineCount'), timerEl = $('timer'), msgEl = $('msg');
+  var boardEl = $('board'), cellsEl = $('cells'), mineAEl = $('mineCountA'), mineBEl = $('mineCountB'), timerEl = $('timer'), msgEl = $('msg');
   var flagBtn = $('flagMode'), metaEl = $('levelMeta');
 
   var level = 'easy', G = null, S = 24, timerId = null, flagMode = false, longFired = false, pressTimer = null, focusIdx = 0;
@@ -310,14 +334,14 @@ h1 {
   function loadBests() {
     Object.keys(bests).forEach(function (k) {
       try {
-        var v = localStorage.getItem('hexms-best-' + k);
+        var v = localStorage.getItem('hexms2-best-' + k);
         if (v) bests[k] = parseInt(v, 10);
       } catch (e) {}
     });
   }
   function saveBest(k, t) {
     bests[k] = t;
-    try { localStorage.setItem('hexms-best-' + k, String(t)); } catch (e) {}
+    try { localStorage.setItem('hexms2-best-' + k, String(t)); } catch (e) {}
   }
   function showBests() {
     Object.keys(bests).forEach(function (k) {
@@ -334,7 +358,8 @@ h1 {
     msgEl.className = 'msg' + (cls ? ' ' + cls : '');
   }
   function updateCounters() {
-    mineEl.textContent = fmt(G.mines - G.flags);
+    mineAEl.textContent = fmt(G.ma - G.flags[1]);
+    mineBEl.textContent = fmt(G.mb - G.flags[2]);
     timerEl.textContent = fmt(G.time);
   }
 
@@ -374,29 +399,35 @@ h1 {
     if (c.s === 'wrong') return 'wrong';
     return 'closed';
   }
-  function useTag(id, p, size) {
-    return '<use href="#' + id + '" x="' + (p.x - size / 2).toFixed(2) + '" y="' + (p.y - size / 2).toFixed(2) + '" width="' + size.toFixed(2) + '" height="' + size.toFixed(2) + '"/>';
+  function useTag(id, p, size, cls) {
+    return '<use' + (cls ? ' class="' + cls + '"' : '') + ' href="#' + id + '" x="' + (p.x - size / 2).toFixed(2) + '" y="' + (p.y - size / 2).toFixed(2) + '" width="' + size.toFixed(2) + '" height="' + size.toFixed(2) + '"/>';
+  }
+  function numTag(cls, x, y, n, fs) {
+    return '<text class="' + cls + '" x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '" dy=".35em" font-size="' + fs.toFixed(1) + '">' + n + '</text>';
   }
   function innerOf(i) {
     var c = G.cells[i], p = center(i), size = S * 1.05;
     var html = '<polygon class="base" points="' + poly(p.x, p.y, S - 0.8) + '"/>';
     html += '<polygon class="bevel" points="' + poly(p.x, p.y, (S - 0.8) * 0.72) + '"/>';
     if (c.o) {
-      if (c.a > 0) {
-        html += '<text class="n' + c.a + '" x="' + p.x.toFixed(2) + '" y="' + p.y.toFixed(2) + '" dy=".35em" font-size="' + (S * 0.95).toFixed(1) + '">' + c.a + '</text>';
-      }
-    } else if (c.s === 'hit' || c.s === 'mine') html += useTag('i-mine', p, size);
+      // 紅雷數在左、藍雷數在右；只有一種時置中
+      if (c.a[1] > 0 && c.a[2] > 0) {
+        html += numTag('ka', p.x - S * 0.36, p.y, c.a[1], S * 0.78);
+        html += numTag('kb', p.x + S * 0.36, p.y, c.a[2], S * 0.78);
+      } else if (c.a[1] > 0) html += numTag('ka', p.x, p.y, c.a[1], S * 0.95);
+      else if (c.a[2] > 0) html += numTag('kb', p.x, p.y, c.a[2], S * 0.95);
+    } else if (c.s === 'hit' || c.s === 'mine') html += useTag(KIND[c.m].mine, p, size, KIND[c.m].cls);
     else if (c.s === 'wrong') html += useTag('i-wrong', p, size);
-    else if (c.f) html += useTag('i-flag', p, size);
+    else if (c.f) html += useTag(KIND[c.f].flag, p, size);
     return html;
   }
   function labelOf(i) {
     var c = G.cells[i], cols = G.cols, st = '未翻開';
-    if (c.o) st = c.a > 0 ? '數字 ' + c.a : '空白';
-    else if (c.s === 'hit') st = '踩到的地雷';
-    else if (c.s === 'mine') st = '地雷';
+    if (c.o) st = (c.a[1] + c.a[2]) > 0 ? '紅 ' + c.a[1] + '、藍 ' + c.a[2] : '空白';
+    else if (c.s === 'hit') st = '踩到的' + KIND[c.m].name + '雷';
+    else if (c.s === 'mine') st = KIND[c.m].name + '雷';
     else if (c.s === 'wrong') st = '插錯旗';
-    else if (c.f) st = '已插旗';
+    else if (c.f) st = '已插' + KIND[c.f].name + '旗';
     return '第 ' + (((i / cols) | 0) + 1) + ' 列第 ' + ((i % cols) + 1) + ' 格，' + st;
   }
   function paint(i) {
@@ -441,11 +472,11 @@ h1 {
   function newGame() {
     stopTimer();
     var L = LEVELS[level], total = L.rows * L.cols, cells = [];
-    for (var i = 0; i < total; i++) cells.push({ m: false, a: 0, o: false, f: false, s: '' });
-    G = { rows: L.rows, cols: L.cols, mines: L.mines, cells: cells, started: false, over: false, opened: 0, flags: 0, time: 0 };
+    for (var i = 0; i < total; i++) cells.push({ m: 0, a: [0, 0, 0], o: false, f: 0, s: '' });
+    G = { rows: L.rows, cols: L.cols, ma: L.ma, mb: L.mb, mines: L.ma + L.mb, cells: cells, started: false, over: false, opened: 0, flags: [0, 0, 0], time: 0 };
     focusIdx = 0;
     render();
-    metaEl.textContent = L.mines + ' 顆地雷';
+    metaEl.textContent = L.ma + ' 紅雷 · ' + L.mb + ' 藍雷';
     ['easy', 'mid', 'hard'].forEach(function (k) {
       $('lv-' + k).setAttribute('aria-pressed', k === level ? 'true' : 'false');
     });
@@ -462,13 +493,14 @@ h1 {
     for (var k = 0; k < G.mines; k++) {
       var r = k + Math.floor(Math.random() * (pool.length - k));
       var tmp = pool[k]; pool[k] = pool[r]; pool[r] = tmp;
-      G.cells[pool[k]].m = true;
+      G.cells[pool[k]].m = k < G.ma ? 1 : 2;
     }
     for (var j = 0; j < G.cells.length; j++) {
       if (G.cells[j].m) continue;
-      var n = 0;
-      nb(j).forEach(function (x) { if (G.cells[x].m) n++; });
-      G.cells[j].a = n;
+      var a = [0, 0, 0];
+      nb(j).forEach(function (x) { a[G.cells[x].m]++; });
+      a[0] = 0;
+      G.cells[j].a = a;
     }
   }
 
@@ -480,7 +512,7 @@ h1 {
       c.o = true;
       G.opened++;
       paint(i);
-      if (c.a === 0) nb(i).forEach(function (n) { stack.push(n); });
+      if (c.a[1] + c.a[2] === 0) nb(i).forEach(function (n) { stack.push(n); });
     }
   }
 
@@ -489,10 +521,10 @@ h1 {
     stopTimer();
     G.cells.forEach(function (c, i) {
       if (i === hit) { c.s = 'hit'; paint(i); }
-      else if (c.m && !c.f) { c.s = 'mine'; paint(i); }
+      else if (c.m && c.f !== c.m) { c.s = 'mine'; paint(i); } // 未插旗或插錯顏色：亮出真正的雷
       else if (!c.m && c.f) { c.s = 'wrong'; paint(i); }
     });
-    setMsg('踩到地雷了，再來一局吧。', 'lose');
+    setMsg('踩到' + KIND[G.cells[hit].m].name + '雷了，再來一局吧。', 'lose');
   }
 
   function checkWin() {
@@ -500,9 +532,9 @@ h1 {
     G.over = true;
     stopTimer();
     G.cells.forEach(function (c, i) {
-      if (c.m && !c.f) { c.f = true; paint(i); }
+      if (c.m && c.f !== c.m) { c.f = c.m; paint(i); }
     });
-    G.flags = G.mines;
+    G.flags = [0, G.ma, G.mb];
     updateCounters();
     var t = Math.max(1, G.time), msg = '過關！用時 ' + t + ' 秒。';
     if (bests[level] == null || t < bests[level]) {
@@ -531,10 +563,10 @@ h1 {
 
   function chord(i) {
     var c = G.cells[i];
-    if (!c.o || c.a === 0) return;
-    var around = nb(i), flags = 0;
-    around.forEach(function (n) { if (G.cells[n].f) flags++; });
-    if (flags !== c.a) return;
+    if (!c.o || c.a[1] + c.a[2] === 0) return;
+    var around = nb(i), flags = [0, 0, 0];
+    around.forEach(function (n) { flags[G.cells[n].f]++; });
+    if (flags[1] !== c.a[1] || flags[2] !== c.a[2]) return;
     for (var k = 0; k < around.length; k++) {
       var n = around[k], x = G.cells[n];
       if (x.f || x.o) continue;
@@ -548,8 +580,10 @@ h1 {
     if (G.over) return;
     var c = G.cells[i];
     if (c.o) return;
-    c.f = !c.f;
-    G.flags += c.f ? 1 : -1;
+    // 輪流切換：無 → 紅旗 → 藍旗 → 無
+    G.flags[c.f]--;
+    c.f = (c.f + 1) % 3;
+    G.flags[c.f]++;
     paint(i);
     updateCounters();
   }
